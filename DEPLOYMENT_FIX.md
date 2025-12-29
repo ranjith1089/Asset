@@ -41,13 +41,34 @@ These files are already in place in the `backend/` directory:
 - ✅ `Procfile` - Start command: `web: uvicorn app.main:app --host 0.0.0.0 --port $PORT`
 - ✅ `nixpacks.toml` - Build configuration (optional, Railway will auto-detect Python)
 
-## Environment Variables
+## Environment Variables ⚠️ REQUIRED
 
-Don't forget to set these in Railway → Variables:
-- `SUPABASE_URL`
-- `SUPABASE_KEY`
-- `SUPABASE_SERVICE_KEY`
-- `CORS_ORIGINS` (e.g., `https://your-frontend.railway.app`)
+**CRITICAL: The application will crash if these are not set!**
+
+You MUST add these environment variables in Railway → Variables tab:
+
+1. Go to your Railway service
+2. Click on the **Variables** tab
+3. Click **+ New Variable** and add each of these:
+
+### Required Variables:
+
+- **`SUPABASE_URL`** - Your Supabase project URL (e.g., `https://xxxxx.supabase.co`)
+- **`SUPABASE_KEY`** - Your Supabase anon/public key (found in Supabase → Settings → API)
+- **`SUPABASE_SERVICE_KEY`** - Your Supabase service_role key (found in Supabase → Settings → API)
+- **`CORS_ORIGINS`** - Comma-separated list of allowed origins (e.g., `https://your-frontend.railway.app,http://localhost:3000`)
+
+### How to Find Supabase Keys:
+
+1. Go to your Supabase project: https://supabase.com
+2. Click on your project
+3. Go to **Settings** → **API**
+4. Copy:
+   - **Project URL** → use for `SUPABASE_URL`
+   - **anon public** key → use for `SUPABASE_KEY`
+   - **service_role** key → use for `SUPABASE_SERVICE_KEY` (⚠️ Keep this secret!)
+
+After adding these variables, Railway will automatically redeploy your service.
 
 ## Still Having Issues?
 
