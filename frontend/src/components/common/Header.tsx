@@ -15,7 +15,18 @@ const Header: React.FC = () => {
   return (
     <header className="bg-white shadow-sm border-b">
       <div className="px-6 py-4 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-800">Asset Management System</h1>
+        <div className="flex items-center gap-4">
+          <img 
+            src="/logo.png" 
+            alt="Logo" 
+            className="h-10 w-auto object-contain"
+            onError={(e) => {
+              // Fallback if logo doesn't exist
+              (e.target as HTMLImageElement).style.display = 'none';
+            }}
+          />
+          <h1 className="text-2xl font-bold text-gray-800">Asset Management System</h1>
+        </div>
         <div className="flex items-center gap-4">
           <span className="text-sm text-gray-600">{user?.email}</span>
           <button
