@@ -7,6 +7,7 @@ import Assets from './pages/Assets';
 import Employees from './pages/Employees';
 import Assignments from './pages/Assignments';
 import Login from './pages/Login';
+import ResetPassword from './pages/ResetPassword';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, loading } = useAuth();
@@ -27,6 +28,7 @@ const App: React.FC = () => {
     <Router>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route
           path="/"
           element={

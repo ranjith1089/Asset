@@ -53,8 +53,10 @@ export const useAuth = (): AuthContextType => {
   };
 
   const resetPassword = async (email: string) => {
+    // Use the current origin (works for both localhost and Railway)
+    const redirectUrl = `${window.location.origin}/reset-password`;
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
+      redirectTo: redirectUrl,
     });
     if (error) throw error;
   };
