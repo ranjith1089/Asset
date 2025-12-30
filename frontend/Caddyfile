@@ -1,0 +1,8 @@
+:8080
+
+root * /app/dist
+encode gzip zstd
+
+file_server
+try_files {path} /index.html
+
