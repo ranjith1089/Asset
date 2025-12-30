@@ -18,9 +18,14 @@ const api = axios.create({
 
 // Add request interceptor to include auth token
 api.interceptors.request.use(async (config) => {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (session?.access_token) {
-    config.headers.Authorization = `Bearer ${session.access_token}`;
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.access_token) {
+      config.headers.Authorization = `Bearer ${session.access_token}`;
+    }
+  } catch (error) {
+    console.error('Failed to get session for API request:', error);
+    // Continue without auth token if session fails
   }
   return config;
 });
