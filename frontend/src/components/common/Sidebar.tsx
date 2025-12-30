@@ -7,10 +7,10 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ currentPath }) => {
-  const { userInfo, user } = useAuth();
+  const { userInfo } = useAuth();
   
   // Get role from userInfo (from API) - this is the source of truth
-  // If userInfo is not loaded yet but user is authenticated, we'll show limited menu
+  // If userInfo is not loaded yet, we'll show limited menu (defaults to viewer)
   const role = userInfo?.role || 'viewer';
   
   // Normalize role to lowercase for comparison
