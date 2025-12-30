@@ -21,6 +21,7 @@ export interface Tenant {
 export interface UserInfo {
   id: string;
   email: string;
+  name?: string;
   tenant_id?: string;
   role?: string;
   status?: string;
@@ -44,7 +45,7 @@ export const useAuth = (): AuthContextType => {
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const loadUserInfo = async (userId: string) => {
+  const loadUserInfo = async (_userId: string) => {
     try {
       const response = await api.get('/api/auth/me');
       setUserInfo(response.data);
@@ -97,7 +98,7 @@ export const useAuth = (): AuthContextType => {
   };
 
   const signUp = async (email: string, password: string, name: string, organizationName: string) => {
-    const response = await api.post('/api/auth/signup', {
+    await api.post('/api/auth/signup', {
       email,
       password,
       name,

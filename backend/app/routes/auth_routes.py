@@ -196,6 +196,22 @@ async def signup(request: SignupRequest):
 @router.get("/me")
 async def get_current_user_info(current_user: User = Depends(get_current_user)):
     """Get current authenticated user information"""
+    # Fetch full user details from database to get name
+    try:
+        user_response = supabase.table("users").select("*").eq("id", str(current_user.id)).execute()
+        if user_response.data and len(user_response.data) > 0:
+            user_data = user_response.data[0]
+            return {
+                "id": str(current_user.id),
+                "email": current_user.email or user_data.get("email"),
+                "name": user_data.get("name"),
+                "tenant_id": str(current_user.tenant_id) if current_user.tenant_id else str(user_data.get("tenant_id")) if user_data.get("tenant_id") else None,
+                "role": current_user.role or user_data.get("role"),
+                "status": current_user.status or user_data.get("status")
+            }
+    except Exception:
+        pass
+    
     return {
         "id": str(current_user.id),
         "email": current_user.email,

@@ -6,7 +6,6 @@ import { Tenant, TenantUpdate } from '../types/tenant';
 
 const Settings: React.FC = () => {
   const { tenant, userInfo, refreshUserInfo } = useAuth();
-  const [tenantData, setTenantData] = useState<Tenant | null>(null);
   const [subscription, setSubscription] = useState<any>(null);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
@@ -24,7 +23,6 @@ const Settings: React.FC = () => {
     try {
       setLoading(true);
       if (tenant) {
-        setTenantData(tenant);
         setFormData({
           name: tenant.name,
           logo_url: tenant.logo_url || '',
