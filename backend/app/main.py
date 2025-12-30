@@ -42,9 +42,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Add custom middleware (order matters - TenantContext should be before AuditLog)
-app.add_middleware(TenantContextMiddleware)
+# Add custom middleware
+# Note: Middleware executes in reverse order (last added = first executed)
+# So AuditLogMiddleware runs first, then TenantContextMiddleware
 app.add_middleware(AuditLogMiddleware)
+app.add_middleware(TenantContextMiddleware)
 
 # Include routers
 # Authentication routes (public)

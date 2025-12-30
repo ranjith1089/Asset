@@ -17,9 +17,10 @@ class AuditLogMiddleware(BaseHTTPMiddleware):
     
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         start_time = time.time()
+        path = str(request.url.path)
         
         # Skip audit logging for health checks, static files, and public auth endpoints
-        if request.url.path in ["/health", "/", "/docs", "/openapi.json", "/redoc"] or request.url.path.startswith("/api/auth/"):
+        if path in ["/health", "/", "/docs", "/openapi.json", "/redoc"] or path.startswith("/api/auth/"):
             return await call_next(request)
         
         # Get user info if authenticated
@@ -92,7 +93,8 @@ class TenantContextMiddleware(BaseHTTPMiddleware):
     
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         # Skip tenant context for public auth endpoints
-        if request.url.path.startswith("/api/auth/"):
+        path = str(request.url.path)
+        if path.startswith("/api/auth/"):
             return await call_next(request)
         
         # Get tenant from user if authenticated
