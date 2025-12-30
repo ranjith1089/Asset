@@ -196,22 +196,27 @@ async def signup(request: SignupRequest):
 @router.get("/me")
 async def get_current_user_info(current_user: User = Depends(get_current_user)):
     """Get current authenticated user information"""
-    # Fetch full user details from database to get name
+    # Fetch full user details from database to get name and role
     try:
         user_response = supabase.table("users").select("*").eq("id", str(current_user.id)).execute()
         if user_response.data and len(user_response.data) > 0:
             user_data = user_response.data[0]
+            # Always use role from database as source of truth
+            db_role = user_data.get("role")
+            db_tenant_id = user_data.get("tenant_id")
             return {
                 "id": str(current_user.id),
                 "email": current_user.email or user_data.get("email"),
                 "name": user_data.get("name"),
-                "tenant_id": str(current_user.tenant_id) if current_user.tenant_id else str(user_data.get("tenant_id")) if user_data.get("tenant_id") else None,
-                "role": current_user.role or user_data.get("role"),
-                "status": current_user.status or user_data.get("status")
+                "tenant_id": str(db_tenant_id) if db_tenant_id else None,
+                "role": db_role or current_user.role,  # Prefer database role
+                "status": user_data.get("status") or current_user.status
             }
-    except Exception:
-        pass
+    except Exception as e:
+        # Log error but don't fail the request
+        print(f"Error fetching user info from database: {e}")
     
+    # Fallback to current_user if database lookup fails
     return {
         "id": str(current_user.id),
         "email": current_user.email,
