@@ -9,26 +9,12 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ currentPath }) => {
   const { userInfo, user } = useAuth();
   
-  // Try to get role from userInfo first (from API), then fall back to JWT token metadata
-  let role = userInfo?.role;
+  // Get role from userInfo (from API) - this is the source of truth
+  // If userInfo is not loaded yet but user is authenticated, we'll show limited menu
+  const role = userInfo?.role || 'viewer';
   
-  if (!role && user) {
-    // Try to get role from user metadata
-    const metadata = (user as any).user_metadata;
-    role = metadata?.role;
-  }
-  
-  // Default to viewer if no role found
-  role = role || 'viewer';
-  
-  // Debug logging to help troubleshoot
-  console.log('Sidebar role check:', {
-    userEmail: user?.email,
-    hasUserInfo: !!userInfo,
-    userInfoRole: userInfo?.role,
-    userMetadataRole: (user as any)?.user_metadata?.role,
-    finalRole: role
-  });
+  // Normalize role to lowercase for comparison
+  const normalizedRole = role?.toLowerCase() || 'viewer';
 
   const navItems = [
     { path: '/', label: 'Dashboard', icon: '📊', roles: ['super_admin', 'tenant_admin', 'manager', 'staff', 'viewer'] },
@@ -38,7 +24,10 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPath }) => {
     { path: '/users', label: 'Users', icon: '👤', roles: ['super_admin', 'tenant_admin'] },
     { path: '/roles', label: 'Roles', icon: '🔐', roles: ['super_admin', 'tenant_admin'] },
     { path: '/settings', label: 'Settings', icon: '⚙️', roles: ['super_admin', 'tenant_admin'] },
-  ].filter(item => item.roles.includes(role));
+  ].filter(item => {
+    const allowedRoles = item.roles.map(r => r.toLowerCase());
+    return allowedRoles.includes(normalizedRole);
+  });
 
   return (
     <aside className="w-64 bg-white shadow-sm min-h-screen">

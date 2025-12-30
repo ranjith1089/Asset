@@ -57,23 +57,26 @@ export const useAuth = (): AuthContextType => {
         timeoutPromise
       ]) as any;
       
-      setUserInfo(response.data);
-      
-      // Load tenant info if tenant_id exists
-      if (response.data.tenant_id) {
-        try {
-          const tenantResponse = await Promise.race([
-            api.get(`/api/tenants/current/info`),
-            timeoutPromise
-          ]) as any;
-          setTenant(tenantResponse.data);
-        } catch (error) {
-          console.error('Failed to load tenant info:', error);
+      if (response.data) {
+        setUserInfo(response.data);
+        
+        // Load tenant info if tenant_id exists
+        if (response.data.tenant_id) {
+          try {
+            const tenantResponse = await Promise.race([
+              api.get(`/api/tenants/current/info`),
+              timeoutPromise
+            ]) as any;
+            if (tenantResponse.data) {
+              setTenant(tenantResponse.data);
+            }
+          } catch (error) {
+            // Silently fail tenant info load
+          }
         }
       }
     } catch (error) {
-      console.error('Failed to load user info:', error);
-      // Don't block the app if user info fails to load
+      // Silently fail - userInfo will remain null and sidebar will show limited menu
     }
   };
 
