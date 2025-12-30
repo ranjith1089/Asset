@@ -16,15 +16,19 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPath }) => {
     // Try to get role from user metadata
     const metadata = (user as any).user_metadata;
     role = metadata?.role;
-    
-    // If still no role but user is logged in, default to tenant_admin for now
-    // This handles the case where userInfo hasn't loaded yet but user is authenticated
-    if (!role && user) {
-      role = 'tenant_admin'; // Safe default for logged-in users
-    }
   }
   
+  // Default to viewer if no role found
   role = role || 'viewer';
+  
+  // Debug logging to help troubleshoot
+  console.log('Sidebar role check:', {
+    userEmail: user?.email,
+    hasUserInfo: !!userInfo,
+    userInfoRole: userInfo?.role,
+    userMetadataRole: (user as any)?.user_metadata?.role,
+    finalRole: role
+  });
 
   const navItems = [
     { path: '/', label: 'Dashboard', icon: '📊', roles: ['super_admin', 'tenant_admin', 'manager', 'staff', 'viewer'] },
