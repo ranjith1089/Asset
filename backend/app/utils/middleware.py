@@ -5,7 +5,7 @@ from typing import Callable
 from app.database import supabase
 from app.models.user import User
 from app.utils.auth import get_current_user
-from fastapi.security import HTTPBearer
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import json
 import time
 
@@ -18,8 +18,8 @@ class AuditLogMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         start_time = time.time()
         
-        # Skip audit logging for health checks and static files
-        if request.url.path in ["/health", "/", "/docs", "/openapi.json", "/redoc"]:
+        # Skip audit logging for health checks, static files, and public auth endpoints
+        if request.url.path in ["/health", "/", "/docs", "/openapi.json", "/redoc"] or request.url.path.startswith("/api/auth/"):
             return await call_next(request)
         
         # Get user info if authenticated
