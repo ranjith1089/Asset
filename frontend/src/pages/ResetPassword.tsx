@@ -14,9 +14,18 @@ const ResetPassword: React.FC = () => {
     // Check if we have a valid session from the recovery token
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) {
-        setError('Invalid or expired reset link. Please request a new password reset.');
+        setError('Invalid or expired reset link. Please request a new password reset from the login page.');
       }
     });
+
+    // Also check URL hash for error parameters
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const error = hashParams.get('error');
+    const errorDescription = hashParams.get('error_description');
+    
+    if (error === 'access_denied' || error === 'otp_expired') {
+      setError(errorDescription?.replace(/\+/g, ' ') || 'Reset link has expired. Please request a new password reset.');
+    }
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
