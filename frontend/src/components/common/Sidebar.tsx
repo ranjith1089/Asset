@@ -8,8 +8,23 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ currentPath }) => {
   const { userInfo, user } = useAuth();
-  // Try to get role from userInfo first, then fall back to JWT token if available
-  const role = userInfo?.role || (user?.user_metadata?.role as string) || 'viewer';
+  // Try to get role from userInfo first, then fall back to JWT token metadata if available
+  // Supabase user_metadata is accessed via user?.user_metadata or user?.app_metadata
+  const role = userInfo?.role || 
+               (user?.user_metadata as any)?.role || 
+               (user?.app_metadata as any)?.role || 
+               'viewer';
+  
+  // Debug: log to help troubleshoot
+  if (!userInfo?.role) {
+    console.log('Sidebar - Using role from token:', {
+      hasUserInfo: !!userInfo,
+      userInfoRole: userInfo?.role,
+      userMetadata: (user?.user_metadata as any),
+      appMetadata: (user?.app_metadata as any),
+      finalRole: role
+    });
+  }
 
   const navItems = [
     { path: '/', label: 'Dashboard', icon: '📊', roles: ['super_admin', 'tenant_admin', 'manager', 'staff', 'viewer'] },
