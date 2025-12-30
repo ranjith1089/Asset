@@ -7,8 +7,9 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ currentPath }) => {
-  const { userInfo } = useAuth();
-  const role = userInfo?.role || 'viewer';
+  const { userInfo, user } = useAuth();
+  // Try to get role from userInfo first, then fall back to JWT token if available
+  const role = userInfo?.role || (user?.user_metadata?.role as string) || 'viewer';
 
   const navItems = [
     { path: '/', label: 'Dashboard', icon: '📊', roles: ['super_admin', 'tenant_admin', 'manager', 'staff', 'viewer'] },
