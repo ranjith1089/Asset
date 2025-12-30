@@ -187,19 +187,24 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
--- Add triggers for new tables
+-- Add triggers for new tables (drop if exists first)
+DROP TRIGGER IF EXISTS update_tenants_updated_at ON tenants;
 CREATE TRIGGER update_tenants_updated_at BEFORE UPDATE ON tenants
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_users_updated_at ON users;
 CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_roles_updated_at ON roles;
 CREATE TRIGGER update_roles_updated_at BEFORE UPDATE ON roles
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_subscriptions_updated_at ON subscriptions;
 CREATE TRIGGER update_subscriptions_updated_at BEFORE UPDATE ON subscriptions
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_invoices_updated_at ON invoices;
 CREATE TRIGGER update_invoices_updated_at BEFORE UPDATE ON invoices
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
@@ -217,6 +222,7 @@ ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE invoices ENABLE ROW LEVEL SECURITY;
 
 -- Tenants policies
+DROP POLICY IF EXISTS "Users can view their own tenant" ON tenants;
 CREATE POLICY "Users can view their own tenant"
     ON tenants FOR SELECT
     TO authenticated
@@ -225,12 +231,14 @@ CREATE POLICY "Users can view their own tenant"
         OR EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'super_admin')
     );
 
+DROP POLICY IF EXISTS "Super admins can manage all tenants" ON tenants;
 CREATE POLICY "Super admins can manage all tenants"
     ON tenants FOR ALL
     TO authenticated
     USING (EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'super_admin'));
 
 -- Users policies
+DROP POLICY IF EXISTS "Users can view users in their tenant" ON users;
 CREATE POLICY "Users can view users in their tenant"
     ON users FOR SELECT
     TO authenticated
@@ -239,6 +247,7 @@ CREATE POLICY "Users can view users in their tenant"
         OR EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'super_admin')
     );
 
+DROP POLICY IF EXISTS "Tenant admins can manage users in their tenant" ON users;
 CREATE POLICY "Tenant admins can manage users in their tenant"
     ON users FOR ALL
     TO authenticated
@@ -249,6 +258,7 @@ CREATE POLICY "Tenant admins can manage users in their tenant"
     );
 
 -- Roles policies
+DROP POLICY IF EXISTS "Users can view roles in their tenant" ON roles;
 CREATE POLICY "Users can view roles in their tenant"
     ON roles FOR SELECT
     TO authenticated
@@ -257,6 +267,7 @@ CREATE POLICY "Users can view roles in their tenant"
         OR EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'super_admin')
     );
 
+DROP POLICY IF EXISTS "Tenant admins can manage roles in their tenant" ON roles;
 CREATE POLICY "Tenant admins can manage roles in their tenant"
     ON roles FOR ALL
     TO authenticated
@@ -267,12 +278,14 @@ CREATE POLICY "Tenant admins can manage roles in their tenant"
     );
 
 -- Permissions policies (read-only for all authenticated users)
+DROP POLICY IF EXISTS "Authenticated users can read permissions" ON permissions;
 CREATE POLICY "Authenticated users can read permissions"
     ON permissions FOR SELECT
     TO authenticated
     USING (true);
 
 -- Audit logs policies
+DROP POLICY IF EXISTS "Users can view audit logs in their tenant" ON audit_logs;
 CREATE POLICY "Users can view audit logs in their tenant"
     ON audit_logs FOR SELECT
     TO authenticated
@@ -283,6 +296,7 @@ CREATE POLICY "Users can view audit logs in their tenant"
     );
 
 -- Subscriptions policies
+DROP POLICY IF EXISTS "Users can view subscription for their tenant" ON subscriptions;
 CREATE POLICY "Users can view subscription for their tenant"
     ON subscriptions FOR SELECT
     TO authenticated
@@ -292,6 +306,7 @@ CREATE POLICY "Users can view subscription for their tenant"
     );
 
 -- Invoices policies
+DROP POLICY IF EXISTS "Users can view invoices for their tenant" ON invoices;
 CREATE POLICY "Users can view invoices for their tenant"
     ON invoices FOR SELECT
     TO authenticated
@@ -317,6 +332,7 @@ DROP POLICY IF EXISTS "Allow authenticated users to update assignments" ON assig
 DROP POLICY IF EXISTS "Allow authenticated users to delete assignments" ON assignments;
 
 -- Employees policies (tenant-scoped)
+DROP POLICY IF EXISTS "Users can view employees in their tenant" ON employees;
 CREATE POLICY "Users can view employees in their tenant"
     ON employees FOR SELECT
     TO authenticated
@@ -325,6 +341,7 @@ CREATE POLICY "Users can view employees in their tenant"
         OR EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'super_admin')
     );
 
+DROP POLICY IF EXISTS "Users can manage employees in their tenant" ON employees;
 CREATE POLICY "Users can manage employees in their tenant"
     ON employees FOR ALL
     TO authenticated
@@ -334,6 +351,7 @@ CREATE POLICY "Users can manage employees in their tenant"
     );
 
 -- Assets policies (tenant-scoped)
+DROP POLICY IF EXISTS "Users can view assets in their tenant" ON assets;
 CREATE POLICY "Users can view assets in their tenant"
     ON assets FOR SELECT
     TO authenticated
@@ -342,6 +360,7 @@ CREATE POLICY "Users can view assets in their tenant"
         OR EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'super_admin')
     );
 
+DROP POLICY IF EXISTS "Users can manage assets in their tenant" ON assets;
 CREATE POLICY "Users can manage assets in their tenant"
     ON assets FOR ALL
     TO authenticated
@@ -351,6 +370,7 @@ CREATE POLICY "Users can manage assets in their tenant"
     );
 
 -- Assignments policies (tenant-scoped)
+DROP POLICY IF EXISTS "Users can view assignments in their tenant" ON assignments;
 CREATE POLICY "Users can view assignments in their tenant"
     ON assignments FOR SELECT
     TO authenticated
@@ -359,6 +379,7 @@ CREATE POLICY "Users can view assignments in their tenant"
         OR EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'super_admin')
     );
 
+DROP POLICY IF EXISTS "Users can manage assignments in their tenant" ON assignments;
 CREATE POLICY "Users can manage assignments in their tenant"
     ON assignments FOR ALL
     TO authenticated
