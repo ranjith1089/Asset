@@ -12,6 +12,7 @@ export interface AuthContextType {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
 }
 
 export const useAuth = (): AuthContextType => {
@@ -51,6 +52,13 @@ export const useAuth = (): AuthContextType => {
     if (error) throw error;
   };
 
-  return { user, loading, signIn, signUp, signOut };
+  const resetPassword = async (email: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    if (error) throw error;
+  };
+
+  return { user, loading, signIn, signUp, signOut, resetPassword };
 };
 
