@@ -1,7 +1,12 @@
 import axios from 'axios';
 import { supabase } from '../hooks/useAuth';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+// Ensure API_URL is a full URL with protocol
+let API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+if (API_URL && !API_URL.startsWith('http://') && !API_URL.startsWith('https://')) {
+  // If URL doesn't have protocol, assume https in production
+  API_URL = `https://${API_URL}`;
+}
 
 const api = axios.create({
   baseURL: API_URL,
