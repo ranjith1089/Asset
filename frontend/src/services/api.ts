@@ -28,6 +28,16 @@ api.interceptors.request.use(async (config) => {
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
+    // Log error details for debugging
+    if (error.message === 'Network Error' || !error.response) {
+      console.error('Network Error:', {
+        message: error.message,
+        baseURL: API_URL,
+        url: error.config?.url,
+        fullURL: error.config?.baseURL + error.config?.url,
+      });
+    }
+    
     if (error.response?.status === 401) {
       // Handle unauthorized - redirect to login
       await supabase.auth.signOut();

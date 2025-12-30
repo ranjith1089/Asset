@@ -11,7 +11,10 @@ class Settings(BaseSettings):
     
     @property
     def cors_origins_list(self) -> List[str]:
-        return [origin.strip() for origin in self.cors_origins.split(",")]
+        origins = [origin.strip() for origin in self.cors_origins.split(",")]
+        # Also allow all origins in development (you can remove this in production for security)
+        # For now, let's keep it strict but log what we're allowing
+        return origins
     
     class Config:
         env_file = ".env"
