@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { tenantsService } from '../services/tenants';
 import { subscriptionsService, Invoice } from '../services/subscriptions';
 import { useAuth } from '../hooks/useAuth';
-import { Tenant, TenantUpdate } from '../types/tenant';
+import { TenantUpdate } from '../types/tenant';
 
 const Settings: React.FC = () => {
   const { tenant, userInfo, refreshUserInfo } = useAuth();
