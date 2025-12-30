@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../hooks/useAuth';
 
 const ResetPassword: React.FC = () => {
@@ -9,7 +9,6 @@ const ResetPassword: React.FC = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const navigate = useNavigate();
-  const location = useLocation();
 
   useEffect(() => {
     // Check if we have a valid session from the recovery token
