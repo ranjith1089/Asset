@@ -2,6 +2,26 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.routes import assets, employees, assignments, test
+import sys
+
+# Validate configuration on startup
+def validate_config():
+    """Validate that all required configuration is present"""
+    missing_vars = []
+    if not settings.supabase_url:
+        missing_vars.append("SUPABASE_URL")
+    if not settings.supabase_key:
+        missing_vars.append("SUPABASE_KEY")
+    if not settings.supabase_service_key:
+        missing_vars.append("SUPABASE_SERVICE_KEY")
+    
+    if missing_vars:
+        print(f"ERROR: Missing required environment variables: {', '.join(missing_vars)}")
+        print("Please set these in Railway dashboard: Settings > Variables")
+        sys.exit(1)
+
+# Validate before creating the app
+validate_config()
 
 app = FastAPI(
     title="Asset Management API",

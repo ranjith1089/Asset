@@ -1,5 +1,6 @@
 from pydantic_settings import BaseSettings
 from typing import List
+import os
 
 
 class Settings(BaseSettings):
@@ -16,5 +17,11 @@ class Settings(BaseSettings):
         env_file = ".env"
 
 
-settings = Settings()
+try:
+    settings = Settings()
+except Exception as e:
+    print(f"ERROR: Failed to load settings. Missing required environment variables.")
+    print(f"Required variables: SUPABASE_URL, SUPABASE_KEY, SUPABASE_SERVICE_KEY, CORS_ORIGINS (optional)")
+    print(f"Error details: {str(e)}")
+    raise
 
