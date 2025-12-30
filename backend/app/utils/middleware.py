@@ -91,6 +91,10 @@ class TenantContextMiddleware(BaseHTTPMiddleware):
     """Middleware to inject tenant context into request state"""
     
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
+        # Skip tenant context for public auth endpoints
+        if request.url.path.startswith("/api/auth/"):
+            return await call_next(request)
+        
         # Get tenant from user if authenticated
         try:
             authorization = request.headers.get("Authorization")
