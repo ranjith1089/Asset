@@ -3,8 +3,9 @@ from typing import List
 from uuid import UUID
 from app.database import supabase
 from app.models.employee import Employee, EmployeeCreate, EmployeeUpdate
-from app.dependencies import get_user
+from app.dependencies import get_user, get_tenant
 from app.models.user import User
+from app.utils.permissions import Resource, Action, has_permission
 
 router = APIRouter(prefix="/employees", tags=["employees"])
 
@@ -14,10 +15,15 @@ async def get_employees(
     skip: int = 0,
     limit: int = 100,
     department: str = None,
+    tenant_id: UUID = Depends(get_tenant),
     current_user: User = Depends(get_user)
 ):
-    """Get all employees with optional filtering"""
-    query = supabase.table("employees").select("*")
+    """Get all employees with optional filtering (tenant-scoped)"""
+    # Check permission
+    if not has_permission(current_user.role or "viewer", Resource.EMPLOYEES, Action.READ):
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    query = supabase.table("employees").select("*").eq("tenant_id", str(tenant_id))
     
     if department:
         query = query.eq("department", department)
@@ -29,9 +35,17 @@ async def get_employees(
 
 
 @router.get("/{employee_id}", response_model=Employee)
-async def get_employee(employee_id: UUID, current_user: User = Depends(get_user)):
-    """Get a specific employee by ID"""
-    response = supabase.table("employees").select("*").eq("id", str(employee_id)).execute()
+async def get_employee(
+    employee_id: UUID,
+    tenant_id: UUID = Depends(get_tenant),
+    current_user: User = Depends(get_user)
+):
+    """Get a specific employee by ID (tenant-scoped)"""
+    # Check permission
+    if not has_permission(current_user.role or "viewer", Resource.EMPLOYEES, Action.READ):
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    response = supabase.table("employees").select("*").eq("id", str(employee_id)).eq("tenant_id", str(tenant_id)).execute()
     
     if not response.data:
         raise HTTPException(status_code=404, detail="Employee not found")
@@ -40,14 +54,23 @@ async def get_employee(employee_id: UUID, current_user: User = Depends(get_user)
 
 
 @router.post("", response_model=Employee, status_code=201)
-async def create_employee(employee: EmployeeCreate, current_user: User = Depends(get_user)):
-    """Create a new employee"""
-    # Check if email already exists
-    existing = supabase.table("employees").select("id").eq("email", employee.email).execute()
+async def create_employee(
+    employee: EmployeeCreate,
+    tenant_id: UUID = Depends(get_tenant),
+    current_user: User = Depends(get_user)
+):
+    """Create a new employee (tenant-scoped)"""
+    # Check permission
+    if not has_permission(current_user.role or "viewer", Resource.EMPLOYEES, Action.CREATE):
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    # Check if email already exists in this tenant
+    existing = supabase.table("employees").select("id").eq("email", employee.email).eq("tenant_id", str(tenant_id)).execute()
     if existing.data:
         raise HTTPException(status_code=400, detail="Employee with this email already exists")
     
     employee_dict = employee.model_dump()
+    employee_dict["tenant_id"] = str(tenant_id)  # Auto-inject tenant_id
     response = supabase.table("employees").insert(employee_dict).execute()
     
     if not response.data:
@@ -60,18 +83,23 @@ async def create_employee(employee: EmployeeCreate, current_user: User = Depends
 async def update_employee(
     employee_id: UUID,
     employee_update: EmployeeUpdate,
+    tenant_id: UUID = Depends(get_tenant),
     current_user: User = Depends(get_user)
 ):
-    """Update an existing employee"""
-    # Check if employee exists
-    existing = supabase.table("employees").select("*").eq("id", str(employee_id)).execute()
+    """Update an existing employee (tenant-scoped)"""
+    # Check permission
+    if not has_permission(current_user.role or "viewer", Resource.EMPLOYEES, Action.UPDATE):
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    # Check if employee exists and belongs to tenant
+    existing = supabase.table("employees").select("*").eq("id", str(employee_id)).eq("tenant_id", str(tenant_id)).execute()
     if not existing.data:
         raise HTTPException(status_code=404, detail="Employee not found")
     
-    # Check if email is being updated and if it already exists
+    # Check if email is being updated and if it already exists in this tenant
     update_dict = employee_update.model_dump(exclude_unset=True)
     if "email" in update_dict:
-        email_check = supabase.table("employees").select("id").eq("email", update_dict["email"]).neq("id", str(employee_id)).execute()
+        email_check = supabase.table("employees").select("id").eq("email", update_dict["email"]).eq("tenant_id", str(tenant_id)).neq("id", str(employee_id)).execute()
         if email_check.data:
             raise HTTPException(status_code=400, detail="Employee with this email already exists")
     
@@ -84,8 +112,21 @@ async def update_employee(
 
 
 @router.delete("/{employee_id}", status_code=204)
-async def delete_employee(employee_id: UUID, current_user: User = Depends(get_user)):
-    """Delete an employee"""
+async def delete_employee(
+    employee_id: UUID,
+    tenant_id: UUID = Depends(get_tenant),
+    current_user: User = Depends(get_user)
+):
+    """Delete an employee (tenant-scoped)"""
+    # Check permission
+    if not has_permission(current_user.role or "viewer", Resource.EMPLOYEES, Action.DELETE):
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    # Verify employee belongs to tenant
+    employee_check = supabase.table("employees").select("id").eq("id", str(employee_id)).eq("tenant_id", str(tenant_id)).execute()
+    if not employee_check.data:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
     # Check if employee has active assignments
     active_assignments = supabase.table("assignments").select("id").eq("employee_id", str(employee_id)).eq("status", "active").execute()
     if active_assignments.data:

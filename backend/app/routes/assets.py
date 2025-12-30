@@ -3,8 +3,9 @@ from typing import List
 from uuid import UUID
 from app.database import supabase
 from app.models.asset import Asset, AssetCreate, AssetUpdate
-from app.dependencies import get_user
+from app.dependencies import get_user, get_tenant
 from app.models.user import User
+from app.utils.permissions import Resource, Action, has_permission
 
 router = APIRouter(prefix="/assets", tags=["assets"])
 
@@ -15,10 +16,15 @@ async def get_assets(
     limit: int = 100,
     status: str = None,
     category: str = None,
+    tenant_id: UUID = Depends(get_tenant),
     current_user: User = Depends(get_user)
 ):
-    """Get all assets with optional filtering"""
-    query = supabase.table("assets").select("*")
+    """Get all assets with optional filtering (tenant-scoped)"""
+    # Check permission
+    if not has_permission(current_user.role or "viewer", Resource.ASSETS, Action.READ):
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    query = supabase.table("assets").select("*").eq("tenant_id", str(tenant_id))
     
     if status:
         query = query.eq("status", status)
@@ -32,9 +38,17 @@ async def get_assets(
 
 
 @router.get("/{asset_id}", response_model=Asset)
-async def get_asset(asset_id: UUID, current_user: User = Depends(get_user)):
-    """Get a specific asset by ID"""
-    response = supabase.table("assets").select("*").eq("id", str(asset_id)).execute()
+async def get_asset(
+    asset_id: UUID,
+    tenant_id: UUID = Depends(get_tenant),
+    current_user: User = Depends(get_user)
+):
+    """Get a specific asset by ID (tenant-scoped)"""
+    # Check permission
+    if not has_permission(current_user.role or "viewer", Resource.ASSETS, Action.READ):
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    response = supabase.table("assets").select("*").eq("id", str(asset_id)).eq("tenant_id", str(tenant_id)).execute()
     
     if not response.data:
         raise HTTPException(status_code=404, detail="Asset not found")
@@ -43,15 +57,24 @@ async def get_asset(asset_id: UUID, current_user: User = Depends(get_user)):
 
 
 @router.post("", response_model=Asset, status_code=201)
-async def create_asset(asset: AssetCreate, current_user: User = Depends(get_user)):
-    """Create a new asset"""
+async def create_asset(
+    asset: AssetCreate,
+    tenant_id: UUID = Depends(get_tenant),
+    current_user: User = Depends(get_user)
+):
+    """Create a new asset (tenant-scoped)"""
+    # Check permission
+    if not has_permission(current_user.role or "viewer", Resource.ASSETS, Action.CREATE):
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
     try:
-        # Check if asset_tag already exists
-        existing = supabase.table("assets").select("id").eq("asset_tag", asset.asset_tag).execute()
+        # Check if asset_tag already exists in this tenant
+        existing = supabase.table("assets").select("id").eq("asset_tag", asset.asset_tag).eq("tenant_id", str(tenant_id)).execute()
         if existing.data:
             raise HTTPException(status_code=400, detail="Asset tag already exists")
         
         asset_dict = asset.model_dump()
+        asset_dict["tenant_id"] = str(tenant_id)  # Auto-inject tenant_id
         # Convert date objects to strings for Supabase
         if asset_dict.get("purchase_date") and hasattr(asset_dict["purchase_date"], "isoformat"):
             asset_dict["purchase_date"] = asset_dict["purchase_date"].isoformat()
@@ -75,18 +98,23 @@ async def create_asset(asset: AssetCreate, current_user: User = Depends(get_user
 async def update_asset(
     asset_id: UUID,
     asset_update: AssetUpdate,
+    tenant_id: UUID = Depends(get_tenant),
     current_user: User = Depends(get_user)
 ):
-    """Update an existing asset"""
-    # Check if asset exists
-    existing = supabase.table("assets").select("*").eq("id", str(asset_id)).execute()
+    """Update an existing asset (tenant-scoped)"""
+    # Check permission
+    if not has_permission(current_user.role or "viewer", Resource.ASSETS, Action.UPDATE):
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    # Check if asset exists and belongs to tenant
+    existing = supabase.table("assets").select("*").eq("id", str(asset_id)).eq("tenant_id", str(tenant_id)).execute()
     if not existing.data:
         raise HTTPException(status_code=404, detail="Asset not found")
     
-    # Check if asset_tag is being updated and if it already exists
+    # Check if asset_tag is being updated and if it already exists in this tenant
     update_dict = asset_update.model_dump(exclude_unset=True)
     if "asset_tag" in update_dict:
-        tag_check = supabase.table("assets").select("id").eq("asset_tag", update_dict["asset_tag"]).neq("id", str(asset_id)).execute()
+        tag_check = supabase.table("assets").select("id").eq("asset_tag", update_dict["asset_tag"]).eq("tenant_id", str(tenant_id)).neq("id", str(asset_id)).execute()
         if tag_check.data:
             raise HTTPException(status_code=400, detail="Asset tag already exists")
     
@@ -99,8 +127,21 @@ async def update_asset(
 
 
 @router.delete("/{asset_id}", status_code=204)
-async def delete_asset(asset_id: UUID, current_user: User = Depends(get_user)):
-    """Delete an asset"""
+async def delete_asset(
+    asset_id: UUID,
+    tenant_id: UUID = Depends(get_tenant),
+    current_user: User = Depends(get_user)
+):
+    """Delete an asset (tenant-scoped)"""
+    # Check permission
+    if not has_permission(current_user.role or "viewer", Resource.ASSETS, Action.DELETE):
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    # Verify asset belongs to tenant
+    asset_check = supabase.table("assets").select("id").eq("id", str(asset_id)).eq("tenant_id", str(tenant_id)).execute()
+    if not asset_check.data:
+        raise HTTPException(status_code=404, detail="Asset not found")
+    
     # Check if asset has active assignments
     active_assignments = supabase.table("assignments").select("id").eq("asset_id", str(asset_id)).eq("status", "active").execute()
     if active_assignments.data:

@@ -1,17 +1,24 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth';
 
 interface SidebarProps {
   currentPath: string;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ currentPath }) => {
+  const { userInfo } = useAuth();
+  const role = userInfo?.role || 'viewer';
+
   const navItems = [
-    { path: '/', label: 'Dashboard', icon: '📊' },
-    { path: '/assets', label: 'Assets', icon: '💻' },
-    { path: '/employees', label: 'Employees', icon: '👥' },
-    { path: '/assignments', label: 'Assignments', icon: '📋' },
-  ];
+    { path: '/', label: 'Dashboard', icon: '📊', roles: ['super_admin', 'tenant_admin', 'manager', 'staff', 'viewer'] },
+    { path: '/assets', label: 'Assets', icon: '💻', roles: ['super_admin', 'tenant_admin', 'manager', 'staff', 'viewer'] },
+    { path: '/employees', label: 'Employees', icon: '👥', roles: ['super_admin', 'tenant_admin', 'manager', 'staff', 'viewer'] },
+    { path: '/assignments', label: 'Assignments', icon: '📋', roles: ['super_admin', 'tenant_admin', 'manager', 'staff', 'viewer'] },
+    { path: '/users', label: 'Users', icon: '👤', roles: ['super_admin', 'tenant_admin'] },
+    { path: '/roles', label: 'Roles', icon: '🔐', roles: ['super_admin', 'tenant_admin'] },
+    { path: '/settings', label: 'Settings', icon: '⚙️', roles: ['super_admin', 'tenant_admin'] },
+  ].filter(item => item.roles.includes(role));
 
   return (
     <aside className="w-64 bg-white shadow-sm min-h-screen">

@@ -22,6 +22,7 @@ class AssignmentReturn(BaseModel):
 
 class Assignment(AssignmentBase):
     id: UUID
+    tenant_id: UUID
     assigned_by: UUID
     returned_date: Optional[date] = None
     status: str  # active, returned

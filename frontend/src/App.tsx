@@ -6,7 +6,11 @@ import Dashboard from './pages/Dashboard';
 import Assets from './pages/Assets';
 import Employees from './pages/Employees';
 import Assignments from './pages/Assignments';
+import Users from './pages/Users';
+import Roles from './pages/Roles';
+import Settings from './pages/Settings';
 import Login from './pages/Login';
+import Signup from './pages/Signup';
 import ResetPassword from './pages/ResetPassword';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -28,6 +32,7 @@ const App: React.FC = () => {
     <Router>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route
           path="/"
@@ -65,6 +70,36 @@ const App: React.FC = () => {
             <ProtectedRoute>
               <Layout>
                 <Assignments />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/users"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <Users />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/roles"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <Roles />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <Settings />
               </Layout>
             </ProtectedRoute>
           }

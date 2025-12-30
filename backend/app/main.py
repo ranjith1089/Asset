@@ -1,7 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
-from app.routes import assets, employees, assignments, test
+from app.routes import (
+    assets, employees, assignments, test,
+    auth_routes, tenants, users, roles, subscriptions, audit
+)
+from app.utils.middleware import AuditLogMiddleware, TenantContextMiddleware
 import sys
 
 # Validate configuration on startup
@@ -24,9 +28,9 @@ def validate_config():
 validate_config()
 
 app = FastAPI(
-    title="Asset Management API",
-    description="API for managing office assets and employee assignments",
-    version="1.0.0"
+    title="Multi-Tenant Asset Management API",
+    description="Multi-tenant SaaS API for managing office assets and employee assignments",
+    version="2.0.0"
 )
 
 # CORS middleware
@@ -38,16 +42,33 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Add custom middleware (order matters - TenantContext should be before AuditLog)
+app.add_middleware(TenantContextMiddleware)
+app.add_middleware(AuditLogMiddleware)
+
 # Include routers
+# Authentication routes (public)
+app.include_router(auth_routes.router, prefix="/api")
+
+# Core resource routes (tenant-scoped)
 app.include_router(assets.router, prefix="/api")
 app.include_router(employees.router, prefix="/api")
 app.include_router(assignments.router, prefix="/api")
+
+# Multi-tenant management routes
+app.include_router(tenants.router, prefix="/api")
+app.include_router(users.router, prefix="/api")
+app.include_router(roles.router, prefix="/api")
+app.include_router(subscriptions.router, prefix="/api")
+app.include_router(audit.router, prefix="/api")
+
+# Test route
 app.include_router(test.router, prefix="/api")
 
 
 @app.get("/")
 async def root():
-    return {"message": "Asset Management API", "version": "1.0.0"}
+    return {"message": "Multi-Tenant Asset Management API", "version": "2.0.0"}
 
 
 @app.get("/health")

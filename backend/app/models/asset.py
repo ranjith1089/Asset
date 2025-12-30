@@ -36,6 +36,7 @@ class AssetUpdate(BaseModel):
 
 class Asset(AssetBase):
     id: UUID
+    tenant_id: UUID
     created_at: str
     updated_at: str
     

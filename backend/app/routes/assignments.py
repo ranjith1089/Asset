@@ -4,8 +4,9 @@ from uuid import UUID
 from datetime import date
 from app.database import supabase
 from app.models.assignment import Assignment, AssignmentCreate, AssignmentReturn, AssignmentWithDetails
-from app.dependencies import get_user
+from app.dependencies import get_user, get_tenant
 from app.models.user import User
+from app.utils.permissions import Resource, Action, has_permission
 
 router = APIRouter(prefix="/assignments", tags=["assignments"])
 
@@ -17,12 +18,17 @@ async def get_assignments(
     status: str = None,
     asset_id: UUID = None,
     employee_id: UUID = None,
+    tenant_id: UUID = Depends(get_tenant),
     current_user: User = Depends(get_user)
 ):
-    """Get all assignments with optional filtering"""
+    """Get all assignments with optional filtering (tenant-scoped)"""
+    # Check permission
+    if not has_permission(current_user.role or "viewer", Resource.ASSIGNMENTS, Action.READ):
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
     query = supabase.table("assignments").select(
         "*, assets(name, asset_tag), employees(name)"
-    )
+    ).eq("tenant_id", str(tenant_id))
     
     if status:
         query = query.eq("status", status)
@@ -52,11 +58,19 @@ async def get_assignments(
 
 
 @router.get("/{assignment_id}", response_model=AssignmentWithDetails)
-async def get_assignment(assignment_id: UUID, current_user: User = Depends(get_user)):
-    """Get a specific assignment by ID"""
+async def get_assignment(
+    assignment_id: UUID,
+    tenant_id: UUID = Depends(get_tenant),
+    current_user: User = Depends(get_user)
+):
+    """Get a specific assignment by ID (tenant-scoped)"""
+    # Check permission
+    if not has_permission(current_user.role or "viewer", Resource.ASSIGNMENTS, Action.READ):
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
     response = supabase.table("assignments").select(
         "*, assets(name, asset_tag), employees(name)"
-    ).eq("id", str(assignment_id)).execute()
+    ).eq("id", str(assignment_id)).eq("tenant_id", str(tenant_id)).execute()
     
     if not response.data:
         raise HTTPException(status_code=404, detail="Assignment not found")
@@ -75,10 +89,18 @@ async def get_assignment(assignment_id: UUID, current_user: User = Depends(get_u
 
 
 @router.post("", response_model=Assignment, status_code=201)
-async def create_assignment(assignment: AssignmentCreate, current_user: User = Depends(get_user)):
-    """Assign an asset to an employee"""
-    # Check if asset exists and is available
-    asset_response = supabase.table("assets").select("*").eq("id", str(assignment.asset_id)).execute()
+async def create_assignment(
+    assignment: AssignmentCreate,
+    tenant_id: UUID = Depends(get_tenant),
+    current_user: User = Depends(get_user)
+):
+    """Assign an asset to an employee (tenant-scoped)"""
+    # Check permission
+    if not has_permission(current_user.role or "viewer", Resource.ASSIGNMENTS, Action.CREATE):
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    # Check if asset exists and belongs to tenant
+    asset_response = supabase.table("assets").select("*").eq("id", str(assignment.asset_id)).eq("tenant_id", str(tenant_id)).execute()
     if not asset_response.data:
         raise HTTPException(status_code=404, detail="Asset not found")
     
@@ -86,8 +108,8 @@ async def create_assignment(assignment: AssignmentCreate, current_user: User = D
     if asset["status"] not in ["available", "assigned"]:
         raise HTTPException(status_code=400, detail=f"Cannot assign asset with status: {asset['status']}")
     
-    # Check if employee exists
-    employee_response = supabase.table("employees").select("id").eq("id", str(assignment.employee_id)).execute()
+    # Check if employee exists and belongs to tenant
+    employee_response = supabase.table("employees").select("id").eq("id", str(assignment.employee_id)).eq("tenant_id", str(tenant_id)).execute()
     if not employee_response.data:
         raise HTTPException(status_code=404, detail="Employee not found")
     
@@ -98,6 +120,7 @@ async def create_assignment(assignment: AssignmentCreate, current_user: User = D
     
     assignment_dict = assignment.model_dump()
     assignment_dict["assigned_by"] = str(current_user.id)
+    assignment_dict["tenant_id"] = str(tenant_id)  # Auto-inject tenant_id
     assignment_dict["status"] = "active"
     
     # Convert UUIDs to strings for Supabase
@@ -135,11 +158,16 @@ async def create_assignment(assignment: AssignmentCreate, current_user: User = D
 async def return_assignment(
     assignment_id: UUID,
     return_data: AssignmentReturn,
+    tenant_id: UUID = Depends(get_tenant),
     current_user: User = Depends(get_user)
 ):
-    """Return an assigned asset"""
-    # Get assignment
-    assignment_response = supabase.table("assignments").select("*").eq("id", str(assignment_id)).execute()
+    """Return an assigned asset (tenant-scoped)"""
+    # Check permission
+    if not has_permission(current_user.role or "viewer", Resource.ASSIGNMENTS, Action.UPDATE):
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    # Get assignment and verify it belongs to tenant
+    assignment_response = supabase.table("assignments").select("*").eq("id", str(assignment_id)).eq("tenant_id", str(tenant_id)).execute()
     if not assignment_response.data:
         raise HTTPException(status_code=404, detail="Assignment not found")
     

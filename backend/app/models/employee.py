@@ -23,6 +23,7 @@ class EmployeeUpdate(BaseModel):
 
 class Employee(EmployeeBase):
     id: UUID
+    tenant_id: UUID
     created_at: str
     updated_at: str
     
