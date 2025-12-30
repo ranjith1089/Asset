@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { AssignmentWithDetails, AssignmentCreate, AssignmentReturn } from '../types/assignment';
+import { AssignmentWithDetails, AssignmentCreate } from '../types/assignment';
 import { assignmentsService } from '../services/assignments';
 import { assetsService } from '../services/assets';
 import { employeesService } from '../services/employees';
