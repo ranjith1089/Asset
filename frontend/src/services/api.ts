@@ -10,6 +10,7 @@ if (API_URL && !API_URL.startsWith('http://') && !API_URL.startsWith('https://')
 
 const api = axios.create({
   baseURL: API_URL,
+  timeout: 10000, // 10 second timeout
   headers: {
     'Content-Type': 'application/json',
   },

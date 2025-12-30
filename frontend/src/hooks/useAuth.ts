@@ -47,13 +47,25 @@ export const useAuth = (): AuthContextType => {
 
   const loadUserInfo = async (_userId: string) => {
     try {
-      const response = await api.get('/api/auth/me');
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Request timeout')), 10000)
+      );
+      
+      const response = await Promise.race([
+        api.get('/api/auth/me'),
+        timeoutPromise
+      ]) as any;
+      
       setUserInfo(response.data);
       
       // Load tenant info if tenant_id exists
       if (response.data.tenant_id) {
         try {
-          const tenantResponse = await api.get(`/api/tenants/current/info`);
+          const tenantResponse = await Promise.race([
+            api.get(`/api/tenants/current/info`),
+            timeoutPromise
+          ]) as any;
           setTenant(tenantResponse.data);
         } catch (error) {
           console.error('Failed to load tenant info:', error);
@@ -61,18 +73,40 @@ export const useAuth = (): AuthContextType => {
       }
     } catch (error) {
       console.error('Failed to load user info:', error);
+      // Don't block the app if user info fails to load
     }
   };
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        await loadUserInfo(session.user.id);
+    // Get initial session with timeout protection
+    const initAuth = async () => {
+      try {
+        const sessionPromise = supabase.auth.getSession();
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Session timeout')), 5000)
+        );
+        
+        const { data: { session } } = await Promise.race([
+          sessionPromise,
+          timeoutPromise
+        ]) as any;
+        
+        setUser(session?.user ?? null);
+        if (session?.user) {
+          // Don't await - let it load in background
+          loadUserInfo(session.user.id).catch(err => {
+            console.error('Background user info load failed:', err);
+          });
+        }
+      } catch (error) {
+        console.error('Failed to get session:', error);
+      } finally {
+        // Always set loading to false, even if there are errors
+        setLoading(false);
       }
-      setLoading(false);
-    });
+    };
+    
+    initAuth();
 
     // Listen for auth changes
     const {
